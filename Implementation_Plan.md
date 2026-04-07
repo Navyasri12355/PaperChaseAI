@@ -1,457 +1,186 @@
 # NLP Research Paper Classifier — Implementation Plan
 
-## Overview
+## Project Summary
 
-You have a CSV of ~23,000 research papers with `title`, `abstract`, `categories`, and `subcategories`. The goal is to build a classifier that can take a new paper (title + abstract) and predict its category and subcategory. This is a **multi-label / hierarchical text classification** problem.
-
----
-
-## Phase 0 — Understand Your Data (Day 1)
-
-Before writing a single model, spend time understanding what you're working with.
-
-### 0.1 Exploratory Data Analysis (EDA)
-
-```python
-import pandas as pd
-import matplotlib.pyplot as plt
-
-df = pd.read_csv("papers.csv")
-print(df.shape)
-print(df.dtypes)
-print(df.isnull().sum())
-
-# Class distribution
-df['category'].value_counts().plot(kind='bar', figsize=(14, 5))
-df['subcategory'].value_counts().head(40).plot(kind='bar', figsize=(14, 5))
-```
-
-**Key questions to answer:**
-- How many unique categories and subcategories exist?
-- Is the distribution balanced or heavily skewed?
-- Are there papers with multiple categories (multi-label)?
-- What's the average abstract length?
-- Are there missing abstracts (title-only papers)?
-
-### 0.2 Decide on Task Framing
-
-| Scenario | Framing |
-|---|---|
-| Each paper has exactly one category | Multi-class classification |
-| Each paper can have multiple categories | Multi-label classification |
-| You need to predict both category AND subcategory | Hierarchical classification |
+Build a classifier that takes a research paper's title and abstract and predicts its category and subcategory. Input data: ~23,000 labeled papers in CSV format.
 
 ---
 
-## Phase 1 — Data Preparation (Day 1–2)
+## Phase 0 — Data Audit
 
-### 1.1 Cleaning
+**Goal:** Know exactly what you're working with before making any decisions.
 
-```python
-def clean_text(text):
-    import re
-    text = str(text).lower().strip()
-    text = re.sub(r'\s+', ' ', text)          # collapse whitespace
-    text = re.sub(r'[^\w\s\-]', '', text)     # remove special chars
-    return text
+**Milestones:**
+- [ ] Count unique categories and subcategories
+- [ ] Plot class distribution for both — identify heavily imbalanced classes
+- [ ] Determine whether papers can have multiple categories (multi-label) or exactly one (multi-class)
+- [ ] Check for null/missing values in title, abstract, category, subcategory
+- [ ] Check for duplicate papers (same title or same abstract)
+- [ ] Measure abstract length distribution (min, median, max, % over 512 tokens)
+- [ ] Identify papers with title-only (no abstract) and decide how to handle them
+- [ ] Confirm the category–subcategory relationship (is every subcategory unique to one parent category, or do subcategories overlap across categories?)
+- [ ] Document findings in a short data card (one paragraph per finding)
 
-df['text'] = (df['title'].fillna('') + ' [SEP] ' + df['abstract'].fillna('')).apply(clean_text)
-```
-
-**Why concatenate title + abstract?** The title gives a dense signal; the abstract provides context. Using `[SEP]` between them helps transformer models understand the boundary.
-
-### 1.2 Label Encoding
-
-```python
-from sklearn.preprocessing import LabelEncoder
-
-le_cat = LabelEncoder()
-le_sub = LabelEncoder()
-
-df['cat_label'] = le_cat.fit_transform(df['category'])
-df['sub_label'] = le_sub.fit_transform(df['subcategory'])
-
-# Save encoders for inference
-import joblib
-joblib.dump(le_cat, 'label_encoder_category.pkl')
-joblib.dump(le_sub, 'label_encoder_subcategory.pkl')
-```
-
-### 1.3 Stratified Train/Val/Test Split
-
-```python
-from sklearn.model_selection import train_test_split
-
-train_df, temp_df = train_test_split(df, test_size=0.2, stratify=df['cat_label'], random_state=42)
-val_df, test_df = train_test_split(temp_df, test_size=0.5, stratify=temp_df['cat_label'], random_state=42)
-
-# Sizes: ~18,400 train / ~2,300 val / ~2,300 test
-```
+**Exit Criteria:** You can answer these three questions with hard numbers — how many classes, how skewed is the distribution, and how much data is missing.
 
 ---
 
-## Phase 2 — Baseline Model (Day 2–3)
+## Phase 1 — Data Preparation
 
-Always build a fast, dumb baseline before touching deep learning. It sets a floor to beat and catches data issues early.
+**Goal:** Produce clean, encoded, split datasets ready for any model to consume.
 
-### 2.1 TF-IDF + Logistic Regression
+**Milestones:**
+- [ ] Define a text cleaning strategy — decide what to strip (punctuation, LaTeX symbols, URLs, special characters) and what to keep (hyphens in compound terms, numbers)
+- [ ] Combine title and abstract into a single input field with a clear separator
+- [ ] Handle missing abstracts — decide: drop the row, use title only, or flag with a placeholder
+- [ ] Encode category and subcategory labels to integers; save the encoders to disk
+- [ ] Perform a stratified train/val/test split (suggested 80/10/10) stratified on category
+- [ ] Verify split: check that every category appears in all three splits
+- [ ] Verify split: check that class distribution roughly matches across splits
+- [ ] Save the three splits as separate CSV files for reproducibility
 
-```python
-from sklearn.pipeline import Pipeline
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import classification_report
-
-pipeline = Pipeline([
-    ('tfidf', TfidfVectorizer(max_features=50000, ngram_range=(1, 2), sublinear_tf=True)),
-    ('clf', LogisticRegression(max_iter=1000, C=5, class_weight='balanced'))
-])
-
-pipeline.fit(train_df['text'], train_df['cat_label'])
-preds = pipeline.predict(val_df['text'])
-print(classification_report(val_df['cat_label'], preds, target_names=le_cat.classes_))
-```
-
-**Expected performance:** 70–85% accuracy depending on class balance. This is your baseline to beat.
-
-### 2.2 Also Try: SVM and Gradient Boosting
-
-```python
-from sklearn.svm import LinearSVC
-from sklearn.calibration import CalibratedClassifierCV
-
-# LinearSVC is often the best classical text classifier
-svc = Pipeline([
-    ('tfidf', TfidfVectorizer(max_features=50000, sublinear_tf=True)),
-    ('clf', CalibratedClassifierCV(LinearSVC(max_iter=2000)))
-])
-```
+**Exit Criteria:** Three clean CSV files exist. You can load any split, run a value_counts() on labels, and confirm no label appears in val/test but not in train.
 
 ---
 
-## Phase 3 — Transformer-Based Model (Day 3–7)
+## Phase 2 — Baseline Model
 
-This is where you'll get the best results. Use a pretrained language model fine-tuned for classification.
+**Goal:** Get a working end-to-end pipeline and a number to beat. No deep learning yet.
 
-### 3.1 Model Choice
+**Milestones:**
+- [ ] Build a TF-IDF + Logistic Regression pipeline for category prediction
+- [ ] Evaluate on val set — record accuracy, macro F1, and weighted F1
+- [ ] Build a TF-IDF + LinearSVC pipeline and compare against logistic regression
+- [ ] Report per-class F1 scores — identify the top 5 best and worst predicted classes
+- [ ] Run the same two pipelines for subcategory prediction
+- [ ] Log all results in a comparison table (model, task, accuracy, macro F1, runtime)
+- [ ] Identify whether errors cluster around specific class pairs (most confused categories)
 
-| Model | Why choose it |
-|---|---|
-| `allenai/scibert_scivocab_uncased` | Trained on scientific papers — **best choice for research paper classification** |
-| `microsoft/BiomedNLP-PubMedBERT-base-uncased` | If many papers are biomedical |
-| `bert-base-uncased` | General fallback, well understood |
-| `distilbert-base-uncased` | Faster/smaller, slight accuracy tradeoff |
-
-**Recommended: SciBERT** — its vocabulary was built from scientific text, so domain terms tokenize better.
-
-### 3.2 Dataset Class
-
-```python
-import torch
-from torch.utils.data import Dataset
-from transformers import AutoTokenizer
-
-tokenizer = AutoTokenizer.from_pretrained('allenai/scibert_scivocab_uncased')
-
-class PaperDataset(Dataset):
-    def __init__(self, texts, labels, max_len=512):
-        self.encodings = tokenizer(
-            list(texts),
-            truncation=True,
-            padding='max_length',
-            max_length=max_len,
-            return_tensors='pt'
-        )
-        self.labels = torch.tensor(list(labels), dtype=torch.long)
-
-    def __len__(self):
-        return len(self.labels)
-
-    def __getitem__(self, idx):
-        return {
-            'input_ids': self.encodings['input_ids'][idx],
-            'attention_mask': self.encodings['attention_mask'][idx],
-            'labels': self.labels[idx]
-        }
-```
-
-### 3.3 Model Architecture
-
-```python
-from transformers import AutoModelForSequenceClassification
-
-num_categories = len(le_cat.classes_)
-
-model = AutoModelForSequenceClassification.from_pretrained(
-    'allenai/scibert_scivocab_uncased',
-    num_labels=num_categories
-)
-```
-
-### 3.4 Training with Hugging Face Trainer
-
-```python
-from transformers import TrainingArguments, Trainer
-import numpy as np
-from sklearn.metrics import accuracy_score, f1_score
-
-def compute_metrics(eval_pred):
-    logits, labels = eval_pred
-    preds = np.argmax(logits, axis=-1)
-    return {
-        'accuracy': accuracy_score(labels, preds),
-        'f1_macro': f1_score(labels, preds, average='macro'),
-        'f1_weighted': f1_score(labels, preds, average='weighted')
-    }
-
-training_args = TrainingArguments(
-    output_dir='./checkpoints',
-    num_train_epochs=5,
-    per_device_train_batch_size=16,
-    per_device_eval_batch_size=32,
-    warmup_ratio=0.1,
-    weight_decay=0.01,
-    learning_rate=2e-5,
-    evaluation_strategy='epoch',
-    save_strategy='epoch',
-    load_best_model_at_end=True,
-    metric_for_best_model='f1_macro',
-    fp16=True,                          # Use if GPU supports it
-    logging_steps=50,
-    report_to='none'
-)
-
-trainer = Trainer(
-    model=model,
-    args=training_args,
-    train_dataset=PaperDataset(train_df['text'], train_df['cat_label']),
-    eval_dataset=PaperDataset(val_df['text'], val_df['cat_label']),
-    compute_metrics=compute_metrics
-)
-
-trainer.train()
-```
-
-### 3.5 Handling Class Imbalance
-
-If some categories have far fewer samples, apply weighted loss:
-
-```python
-from torch import nn
-
-class_weights = compute_class_weight('balanced', classes=np.unique(train_df['cat_label']), y=train_df['cat_label'])
-class_weights = torch.tensor(class_weights, dtype=torch.float).to(device)
-
-class WeightedTrainer(Trainer):
-    def compute_loss(self, model, inputs, return_outputs=False):
-        labels = inputs.pop("labels")
-        outputs = model(**inputs)
-        logits = outputs.logits
-        loss = nn.CrossEntropyLoss(weight=class_weights)(logits, labels)
-        return (loss, outputs) if return_outputs else loss
-```
+**Exit Criteria:** A comparison table exists with documented macro F1 baselines for both category and subcategory prediction. All future models must beat these numbers.
 
 ---
 
-## Phase 4 — Hierarchical Classification (Day 7–9)
+## Phase 3 — Transformer Model
 
-Since you have both categories and subcategories, use a two-stage prediction approach.
+**Goal:** Fine-tune a pretrained language model that meaningfully outperforms the baseline.
 
-### Strategy A — Sequential (simple, works well)
+**Milestones:**
+- [ ] Select a pretrained model — evaluate these options and pick one with justification:
+  - `allenai/scibert_scivocab_uncased` — trained on scientific papers, best default choice
+  - `microsoft/BiomedNLP-PubMedBERT-base-uncased` — if papers skew biomedical
+  - `bert-base-uncased` — general fallback
+  - `distilbert-base-uncased` — if GPU memory or inference speed is a hard constraint
+- [ ] Decide on max token length based on Phase 0 findings (512 for most BERT variants; consider Longformer if >30% of abstracts exceed 512 tokens)
+- [ ] Define the tokenization strategy — confirm title + abstract fits within max length; decide truncation behavior if it doesn't
+- [ ] Set up a training configuration: learning rate, batch size, number of epochs, warmup schedule, weight decay — document the reasoning for each choice
+- [ ] Decide how to handle class imbalance: weighted loss function, oversampling rare classes, or none
+- [ ] Train the category classifier; log train loss and val F1 per epoch
+- [ ] Confirm the model is learning (val F1 improves over epochs) — if not, diagnose before continuing
+- [ ] Apply early stopping based on val macro F1
+- [ ] Save the best checkpoint
+- [ ] Evaluate on the held-out test set — record accuracy, macro F1, weighted F1, and per-class F1
+- [ ] Compare results against the Phase 2 baseline in the comparison table
 
-Train two separate classifiers: one for category, one for subcategory. At inference time, run the category model first, then run the subcategory model.
-
-```
-Paper text → [Category Model] → "Machine Learning"
-                                       ↓
-                             [Subcategory Model] → "Reinforcement Learning"
-```
-
-### Strategy B — Constrained Prediction (better accuracy)
-
-At inference time, mask out subcategories that don't belong to the predicted category. This prevents nonsensical combinations like predicting category "Astronomy" with subcategory "Transformer Architecture."
-
-```python
-# Build a mapping: category → valid subcategory indices
-cat_to_sub_indices = {}
-for cat in le_cat.classes_:
-    valid_subs = df[df['category'] == cat]['subcategory'].unique()
-    cat_to_sub_indices[cat] = [le_sub.transform([s])[0] for s in valid_subs if s in le_sub.classes_]
-
-def constrained_predict(text, cat_model, sub_model):
-    predicted_cat = cat_model.predict([text])[0]
-    cat_name = le_cat.inverse_transform([predicted_cat])[0]
-    
-    sub_logits = sub_model.predict_proba([text])[0]
-    
-    # Zero out logits for invalid subcategories
-    mask = np.full(len(le_sub.classes_), -np.inf)
-    for valid_idx in cat_to_sub_indices[cat_name]:
-        mask[valid_idx] = sub_logits[valid_idx]
-    
-    predicted_sub = np.argmax(mask)
-    return cat_name, le_sub.inverse_transform([predicted_sub])[0]
-```
+**Exit Criteria:** A saved model checkpoint exists. Test set macro F1 beats the TF-IDF baseline. Per-class F1 has been reviewed and no class sits at zero.
 
 ---
 
-## Phase 5 — Evaluation (Day 9–10)
+## Phase 4 — Hierarchical Classification (Category + Subcategory)
 
-### 5.1 Metrics to Track
+**Goal:** Extend the system to predict both category and subcategory in a coherent way.
 
-```python
-from sklearn.metrics import classification_report, confusion_matrix
-import seaborn as sns
+**Milestones:**
+- [ ] Map out the full category → subcategory hierarchy and confirm which subcategories belong to which parent
+- [ ] Choose a hierarchical strategy and document the tradeoff:
+  - **Sequential:** two separate models; at inference run category first, then subcategory
+  - **Constrained:** same as sequential but mask out invalid subcategories based on the predicted parent
+  - **Multi-output:** one model with two output heads sharing a backbone
+- [ ] Train the subcategory classifier (same architecture as Phase 3)
+- [ ] Evaluate subcategory prediction in isolation on the test set
+- [ ] Implement the joint prediction logic — given a paper, produce both a category and subcategory
+- [ ] Evaluate joint accuracy — how often are both category AND subcategory correct simultaneously
+- [ ] Evaluate hierarchical consistency — how often does the predicted subcategory actually belong to the predicted category
+- [ ] Log all metrics in the comparison table
 
-# Full classification report per class
-print(classification_report(
-    test_df['cat_label'],
-    predictions,
-    target_names=le_cat.classes_,
-    digits=3
-))
-
-# Confusion matrix (use for top-N classes if too many)
-cm = confusion_matrix(test_df['cat_label'], predictions)
-sns.heatmap(cm, xticklabels=le_cat.classes_, yticklabels=le_cat.classes_, annot=True)
-```
-
-### 5.2 Error Analysis
-
-Always look at what the model gets wrong — it reveals whether the issue is label noise, ambiguous papers, or a model weakness.
-
-```python
-errors = test_df.copy()
-errors['predicted'] = le_cat.inverse_transform(predictions)
-errors['actual'] = le_cat.inverse_transform(test_df['cat_label'])
-errors = errors[errors['predicted'] != errors['actual']]
-
-# Look at the most confused pairs
-errors.groupby(['actual', 'predicted']).size().sort_values(ascending=False).head(20)
-```
+**Exit Criteria:** The system returns a predicted category AND subcategory for any input. Joint accuracy and hierarchical consistency metrics are both recorded.
 
 ---
 
-## Phase 6 — Serving the Model (Day 10–12)
+## Phase 5 — Error Analysis and Model Iteration
 
-### 6.1 Inference Pipeline
+**Goal:** Understand failure modes and make targeted improvements before shipping.
 
-```python
-class PaperClassifier:
-    def __init__(self, model_path, tokenizer_path, cat_encoder_path, sub_encoder_path):
-        from transformers import AutoTokenizer, AutoModelForSequenceClassification
-        self.tokenizer = AutoTokenizer.from_pretrained(tokenizer_path)
-        self.cat_model = AutoModelForSequenceClassification.from_pretrained(model_path)
-        self.cat_model.eval()
-        self.le_cat = joblib.load(cat_encoder_path)
-    
-    def predict(self, title: str, abstract: str, top_k: int = 3):
-        text = f"{title} [SEP] {abstract}"
-        inputs = self.tokenizer(text, return_tensors='pt', truncation=True, max_length=512)
-        
-        with torch.no_grad():
-            logits = self.cat_model(**inputs).logits
-        
-        probs = torch.softmax(logits, dim=-1).squeeze().numpy()
-        top_indices = probs.argsort()[::-1][:top_k]
-        
-        return [
-            {'category': self.le_cat.inverse_transform([i])[0], 'confidence': float(probs[i])}
-            for i in top_indices
-        ]
-```
+**Milestones:**
+- [ ] Extract all misclassified papers from the test set
+- [ ] Identify the top 10 most confused category pairs; manually examine 5–10 examples per pair
+- [ ] Hypothesize the root cause for each confused pair: label noise, topic overlap, short abstracts, domain jargon, or model limitation
+- [ ] Decide on at least one targeted fix per root cause — e.g., label noise → audit and relabel; rare class → oversample; topic overlap → consider merging
+- [ ] Implement the fix, retrain, and confirm improvement on the previously confused pairs
+- [ ] Re-evaluate on the full test set — confirm overall metrics did not regress
+- [ ] Document what was tried, what worked, and what didn't
 
-### 6.2 FastAPI Endpoint
-
-```python
-from fastapi import FastAPI
-from pydantic import BaseModel
-
-app = FastAPI()
-classifier = PaperClassifier(...)
-
-class PaperInput(BaseModel):
-    title: str
-    abstract: str
-
-@app.post("/classify")
-def classify_paper(paper: PaperInput):
-    predictions = classifier.predict(paper.title, paper.abstract)
-    return {"predictions": predictions}
-```
+**Exit Criteria:** At least one targeted fix has been implemented and validated. The confusion matrix has visibly improved on the previously worst pairs.
 
 ---
 
-## Phase 7 — Iteration and Improvement
+## Phase 6 — Inference Pipeline
 
-Once you have a working baseline and a fine-tuned transformer, here are the most impactful ways to improve:
+**Goal:** Wrap the model in a clean, reusable interface that can be called from anywhere.
 
-| Technique | Expected Gain | Effort |
+**Milestones:**
+- [ ] Define the input/output contract: input is title + abstract (strings); output is top-K predictions each with category, subcategory, and confidence score
+- [ ] Build a self-contained inference class that loads model, tokenizer, and label encoders from disk
+- [ ] Confirm inference is correct on 10 manually chosen test papers
+- [ ] Measure latency on a single sample and on a batch of 100
+- [ ] Confirm the pipeline handles edge cases: empty abstract, very long abstract, unknown characters
+- [ ] Build a simple REST API with a single POST /classify endpoint
+- [ ] Test the API end-to-end with a sample request
+- [ ] Document the API: input schema, output schema, example request/response
+
+**Exit Criteria:** A running API accepts a paper and returns a structured prediction. Latency is measured and acceptable for your use case.
+
+---
+
+## Phase 7 — Monitoring and Roadmap
+
+**Goal:** Make the system maintainable and set up a path for continuous improvement.
+
+**Milestones:**
+- [ ] Define what model drift looks like here — what signals indicate the model is degrading?
+- [ ] Set up prediction logging: record input hash, predicted label, and confidence for every inference
+- [ ] Define a retraining trigger — e.g., 500 new labeled papers, or val F1 drops below a threshold
+- [ ] Write a retraining runbook so anyone on the team can reproduce the full pipeline
+- [ ] Prioritize and document next improvement experiments:
+  - Longformer for papers with long abstracts
+  - Ensemble of TF-IDF + transformer (averaged probabilities)
+  - Data augmentation for rare subcategories via back-translation
+  - Active learning: flag low-confidence predictions for human review
+
+**Exit Criteria:** A retraining runbook exists. At least one future experiment is documented with a hypothesis and expected outcome.
+
+---
+
+## Milestone Tracker
+
+| Phase | Description | Status |
 |---|---|---|
-| SciBERT → Longformer if abstracts are long | +2–4% F1 | Medium |
-| Data augmentation (back-translation for rare classes) | +3–5% for tail classes | High |
-| Ensemble TF-IDF + SciBERT (average probabilities) | +1–2% F1 | Low |
-| Active learning: label ambiguous predictions manually | High long-term gain | High |
-| Hyperparameter sweep (lr, batch size, warmup) | +1–3% F1 | Medium |
+| 0 | Data Audit | — |
+| 1 | Data Preparation | — |
+| 2 | Baseline Model | — |
+| 3 | Transformer Model | — |
+| 4 | Hierarchical Classification | — |
+| 5 | Error Analysis + Iteration | — |
+| 6 | Inference Pipeline | — |
+| 7 | Monitoring + Roadmap | — |
 
 ---
 
-## Recommended Tech Stack
+## Key Decisions to Lock In Before Phase 3
 
-| Component | Tool |
-|---|---|
-| Data manipulation | `pandas`, `numpy` |
-| Baseline ML | `scikit-learn` |
-| Transformer models | `transformers` (Hugging Face), `torch` |
-| Experiment tracking | `wandb` or `mlflow` |
-| Serialization | `joblib`, `torch.save` |
-| Serving | `fastapi` + `uvicorn` |
-| Visualization | `matplotlib`, `seaborn` |
+These affect everything downstream. Decide and document your reasoning before training anything.
 
----
-
-## Timeline Summary
-
-| Phase | Task | Days |
-|---|---|---|
-| 0 | EDA + understand data | 1 |
-| 1 | Data cleaning + label encoding | 1–2 |
-| 2 | TF-IDF baseline | 2–3 |
-| 3 | SciBERT fine-tuning | 3–7 |
-| 4 | Hierarchical (category + subcategory) | 7–9 |
-| 5 | Evaluation + error analysis | 9–10 |
-| 6 | Serving (inference pipeline + API) | 10–12 |
-| 7 | Iteration / improvement | 12+ |
-
----
-
-## Quick Decision Guide
-
-```
-Do you have a GPU?
-├── Yes → Go straight to SciBERT (Phase 3), skip baseline if pressed for time
-└── No  → TF-IDF + LinearSVC baseline will get you 75–85% and runs on CPU in minutes
-           Use Google Colab (free T4 GPU) for the transformer fine-tuning step
-
-Are there >50 subcategories?
-├── Yes → Use Strategy A (two separate models), it's simpler and more maintainable
-└── No  → Strategy B (constrained prediction) is worth implementing for accuracy gains
-
-Is the dataset heavily imbalanced?
-├── Yes → Use weighted CrossEntropyLoss (Phase 3.5) + report per-class F1, not accuracy
-└── No  → Standard training setup is fine
-```
-
----
-
-## Appendix — Install Commands
-
-```bash
-pip install transformers torch scikit-learn pandas numpy \
-            fastapi uvicorn joblib matplotlib seaborn
-
-# Optional but recommended
-pip install wandb          # experiment tracking
-pip install datasets       # HuggingFace dataset utilities
-pip install sentencepiece  # required for some tokenizers
-```
+1. **Multi-class vs multi-label** — can a paper have more than one category?
+2. **Token length** — what percentage of your papers exceed 512 tokens?
+3. **Base model** — SciBERT unless you have a strong reason not to
+4. **Hierarchical strategy** — constrained sequential is the safest starting point
+5. **Primary metric** — use macro F1, not accuracy, if classes are imbalanced
