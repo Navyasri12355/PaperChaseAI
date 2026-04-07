@@ -1,0 +1,47 @@
+arXiv Papers — Data Card
+============================================================
+
+Raw rows:                19060
+After dropping short abstracts: 19,025  (dropped 35)
+
+--- Label structure ---
+Main categories:         8
+  ['Computer Science', 'Economics', 'Electrical Engineering', 'Mathematics', 'Physics', 'Quantitative Biology', 'Quantitative Finance', 'Statistics']
+Subcategories (total):   117  (after namespacing ambiguous codes)
+
+--- Multi-label ---
+Papers with >1 arXiv label: 12,180 / 19,025 = 64.0%
+NOTE: main_category is single-label (primary label only). all_labels column
+preserves the full multi-label set for future use.
+
+--- Missing data ---
+sub_category nulls:      158 (all math.NA — filled with 'NA')
+title nulls:             0
+abstract nulls:          0
+Duplicate titles:        0
+Duplicate abstracts:     0
+
+--- Text length ---
+Abstract: mean 160 words, median 161, max 485
+Title:    mean 10 words,  median 10, max 32
+Papers exceeding 512 approx tokens: 3  (0.0% — standard BERT is fine)
+
+--- Class imbalance ---
+Most common subcategory:  'General' (680 samples)
+Rarest subcategory:       'AI' (35 samples) — monitor during training
+Subcategories < 100 samples: 7
+
+--- Ambiguous subcategory codes (namespaced) ---
+12 codes appeared in >1 main category. Resolved by prefixing with
+main category name (e.g. 'CO' → 'Physics::CO' or 'Mathematics::CO').
+
+--- Splits ---
+Train: 15,220 | Val: 1,902 | Test: 1,903
+Stratified on main_category. All val/test categories present in train: ✓
+
+--- Decisions locked in ---
+Task framing:       Multi-class (main_category is the target)
+                    Hierarchical extension: sub_category as second target
+Token budget:       512 — standard BERT/SciBERT is sufficient
+Primary metric:     Macro F1 (classes are moderately imbalanced)
+Recommended model:  allenai/scibert_scivocab_uncased
