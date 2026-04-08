@@ -23,7 +23,7 @@ warnings.filterwarnings("ignore")
 
 # ── paths ──────────────────────────────────────────────────────────────────────
 INPUT_CSV   = "arxiv_balanced_19060_papers.csv"
-OUTPUT_DIR  = "/outputs"
+OUTPUT_DIR  = "outputs"
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 TRAIN_CSV   = f"{OUTPUT_DIR}/train.csv"
@@ -313,7 +313,7 @@ lines = [
 ]
 
 data_card = "\n".join(lines)
-with open(STATS_TXT, "w") as f:
+with open(STATS_TXT, "w", encoding="utf-8") as f:
     f.write(data_card)
 print(data_card)
 print(f"\nData card saved → {STATS_TXT}")

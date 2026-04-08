@@ -45,3 +45,8 @@ Task framing:       Multi-class (main_category is the target)
 Token budget:       512 — standard BERT/SciBERT is sufficient
 Primary metric:     Macro F1 (classes are moderately imbalanced)
 Recommended model:  allenai/scibert_scivocab_uncased
+
+--- Output files ---
+train.csv, val.csv, test.csv  →  outputs/
+le_main_category.pkl, le_sub_category.pkl  →  outputs/
+eda_report.png  →  outputs/
