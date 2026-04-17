@@ -70,7 +70,7 @@ pipelines = {
         ("tfidf", TfidfVectorizer(**TFIDF_KWARGS)),
         ("clf",   LogisticRegression(max_iter=1000, C=5.0,
                                      class_weight="balanced",
-                                     solver="lbfgs", multi_class="auto",
+                                     solver="lbfgs",
                                      n_jobs=-1)),
     ]),
     "SVC": Pipeline([
