@@ -11,15 +11,15 @@ Build a classifier that takes a research paper's title and abstract and predicts
 **Goal:** Know exactly what you're working with before making any decisions.
 
 **Milestones:**
-- [ ] Count unique categories and subcategories
-- [ ] Plot class distribution for both — identify heavily imbalanced classes
-- [ ] Determine whether papers can have multiple categories (multi-label) or exactly one (multi-class)
-- [ ] Check for null/missing values in title, abstract, category, subcategory
-- [ ] Check for duplicate papers (same title or same abstract)
-- [ ] Measure abstract length distribution (min, median, max, % over 512 tokens)
-- [ ] Identify papers with title-only (no abstract) and decide how to handle them
-- [ ] Confirm the category–subcategory relationship (is every subcategory unique to one parent category, or do subcategories overlap across categories?)
-- [ ] Document findings in a short data card (one paragraph per finding)
+- [x] Count unique categories and subcategories
+- [x] Plot class distribution for both — identify heavily imbalanced classes
+- [x] Determine whether papers can have multiple categories (multi-label) or exactly one (multi-class)
+- [x] Check for null/missing values in title, abstract, category, subcategory
+- [x] Check for duplicate papers (same title or same abstract)
+- [x] Measure abstract length distribution (min, median, max, % over 512 tokens)
+- [x] Identify papers with title-only (no abstract) and decide how to handle them
+- [x] Confirm the category–subcategory relationship (is every subcategory unique to one parent category, or do subcategories overlap across categories?)
+- [x] Document findings in a short data card (one paragraph per finding)
 
 **Exit Criteria:** You can answer these three questions with hard numbers — how many classes, how skewed is the distribution, and how much data is missing.
 
@@ -30,14 +30,14 @@ Build a classifier that takes a research paper's title and abstract and predicts
 **Goal:** Produce clean, encoded, split datasets ready for any model to consume.
 
 **Milestones:**
-- [ ] Define a text cleaning strategy — decide what to strip (punctuation, LaTeX symbols, URLs, special characters) and what to keep (hyphens in compound terms, numbers)
-- [ ] Combine title and abstract into a single input field with a clear separator
-- [ ] Handle missing abstracts — decide: drop the row, use title only, or flag with a placeholder
-- [ ] Encode category and subcategory labels to integers; save the encoders to disk
-- [ ] Perform a stratified train/val/test split (suggested 80/10/10) stratified on category
-- [ ] Verify split: check that every category appears in all three splits
-- [ ] Verify split: check that class distribution roughly matches across splits
-- [ ] Save the three splits as separate CSV files for reproducibility
+- [x] Define a text cleaning strategy — decide what to strip (punctuation, LaTeX symbols, URLs, special characters) and what to keep (hyphens in compound terms, numbers)
+- [x] Combine title and abstract into a single input field with a clear separator
+- [x] Handle missing abstracts — decide: drop the row, use title only, or flag with a placeholder
+- [x] Encode category and subcategory labels to integers; save the encoders to disk
+- [x] Perform a stratified train/val/test split (suggested 80/10/10) stratified on category
+- [x] Verify split: check that every category appears in all three splits
+- [x] Verify split: check that class distribution roughly matches across splits
+- [x] Save the three splits as separate CSV files for reproducibility
 
 **Exit Criteria:** Three clean CSV files exist. You can load any split, run a value_counts() on labels, and confirm no label appears in val/test but not in train.
 
@@ -48,13 +48,13 @@ Build a classifier that takes a research paper's title and abstract and predicts
 **Goal:** Get a working end-to-end pipeline and a number to beat. No deep learning yet.
 
 **Milestones:**
-- [ ] Build a TF-IDF + Logistic Regression pipeline for category prediction
-- [ ] Evaluate on val set — record accuracy, macro F1, and weighted F1
-- [ ] Build a TF-IDF + LinearSVC pipeline and compare against logistic regression
-- [ ] Report per-class F1 scores — identify the top 5 best and worst predicted classes
-- [ ] Run the same two pipelines for subcategory prediction
-- [ ] Log all results in a comparison table (model, task, accuracy, macro F1, runtime)
-- [ ] Identify whether errors cluster around specific class pairs (most confused categories)
+- [x] Build a TF-IDF + Logistic Regression pipeline for category prediction
+- [x] Evaluate on val set — record accuracy, macro F1, and weighted F1
+- [x] Build a TF-IDF + LinearSVC pipeline and compare against logistic regression
+- [x] Report per-class F1 scores — identify the top 5 best and worst predicted classes
+- [x] Run the same two pipelines for subcategory prediction
+- [x] Log all results in a comparison table (model, task, accuracy, macro F1, runtime)
+- [x] Identify whether errors cluster around specific class pairs (most confused categories)
 
 **Exit Criteria:** A comparison table exists with documented macro F1 baselines for both category and subcategory prediction. All future models must beat these numbers.
 
@@ -65,20 +65,20 @@ Build a classifier that takes a research paper's title and abstract and predicts
 **Goal:** Fine-tune a pretrained language model that meaningfully outperforms the baseline.
 
 **Milestones:**
-- [ ] Select a pretrained model — evaluate these options and pick one with justification:
+- [x] Select a pretrained model — evaluate these options and pick one with justification:
   - `allenai/scibert_scivocab_uncased` — trained on scientific papers, best default choice
   - `microsoft/BiomedNLP-PubMedBERT-base-uncased` — if papers skew biomedical
   - `bert-base-uncased` — general fallback
   - `distilbert-base-uncased` — if GPU memory or inference speed is a hard constraint
-- [ ] Decide on max token length based on Phase 0 findings (512 for most BERT variants; consider Longformer if >30% of abstracts exceed 512 tokens)
-- [ ] Define the tokenization strategy — confirm title + abstract fits within max length; decide truncation behavior if it doesn't
-- [ ] Set up a training configuration: learning rate, batch size, number of epochs, warmup schedule, weight decay — document the reasoning for each choice
-- [ ] Decide how to handle class imbalance: weighted loss function, oversampling rare classes, or none
-- [ ] Train the category classifier; log train loss and val F1 per epoch
-- [ ] Confirm the model is learning (val F1 improves over epochs) — if not, diagnose before continuing
-- [ ] Apply early stopping based on val macro F1
-- [ ] Save the best checkpoint
-- [ ] Evaluate on the held-out test set — record accuracy, macro F1, weighted F1, and per-class F1
+- [x] Decide on max token length based on Phase 0 findings (512 for most BERT variants; consider Longformer if >30% of abstracts exceed 512 tokens)
+- [x] Define the tokenization strategy — confirm title + abstract fits within max length; decide truncation behavior if it doesn't
+- [x] Set up a training configuration: learning rate, batch size, number of epochs, warmup schedule, weight decay — document the reasoning for each choice
+- [x] Decide how to handle class imbalance: weighted loss function, oversampling rare classes, or none
+- [x] Train the category classifier; log train loss and val F1 per epoch
+- [x] Confirm the model is learning (val F1 improves over epochs) — if not, diagnose before continuing
+- [x] Apply early stopping based on val macro F1
+- [x] Save the best checkpoint
+- [x] Evaluate on the held-out test set — record accuracy, macro F1, weighted F1, and per-class F1
 - [ ] Compare results against the Phase 2 baseline in the comparison table
 
 **Exit Criteria:** A saved model checkpoint exists. Test set macro F1 beats the TF-IDF baseline. Per-class F1 has been reviewed and no class sits at zero.
