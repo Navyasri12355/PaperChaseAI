@@ -1,0 +1,44 @@
+SciBERT — main_category — Test Set Report
+============================================================
+Accuracy:    0.8408
+Macro F1:    0.7726  (baseline to beat: 0.7526)
+Weighted F1: 0.8456
+✓ BEATS baseline
+
+Full Classification Report:
+                        precision    recall  f1-score   support
+
+      Computer Science       0.87      0.80      0.84       530
+             Economics       0.58      0.77      0.66        52
+Electrical Engineering       0.54      0.65      0.59        68
+           Mathematics       0.94      0.85      0.89       427
+               Physics       0.92      0.89      0.91       548
+  Quantitative Biology       0.63      0.92      0.75       105
+  Quantitative Finance       0.89      0.85      0.87        96
+            Statistics       0.59      0.79      0.67        77
+
+              accuracy                           0.84      1903
+             macro avg       0.75      0.82      0.77      1903
+          weighted avg       0.86      0.84      0.85      1903
+
+
+Top 5 best predicted classes:
+               class       f1  support
+             Physics 0.905380      548
+         Mathematics 0.891892      427
+Quantitative Finance 0.872340       96
+    Computer Science 0.836614      530
+Quantitative Biology 0.749035      105
+
+Top 5 worst predicted classes:
+                 class       f1  support
+      Computer Science 0.836614      530
+  Quantitative Biology 0.749035      105
+            Statistics 0.674033       77
+             Economics 0.661157       52
+Electrical Engineering 0.590604       68
+
+Zero F1 classes (if any):
+Empty DataFrame
+Columns: [class, f1, support]
+Index: []
