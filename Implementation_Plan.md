@@ -164,9 +164,9 @@ Build a classifier that takes a research paper's title and abstract and predicts
 
 | Phase | Description | Status |
 |---|---|---|
-| 0 | Data Audit | — |
-| 1 | Data Preparation | — |
-| 2 | Baseline Model | — |
+| 0 | Data Audit | ✅ |
+| 1 | Data Preparation | ✅ |
+| 2 | Baseline Model | ✅ |
 | 3 | Transformer Model | — |
 | 4 | Hierarchical Classification | — |
 | 5 | Error Analysis + Iteration | — |
