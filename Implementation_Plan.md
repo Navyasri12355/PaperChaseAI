@@ -79,7 +79,7 @@ Build a classifier that takes a research paper's title and abstract and predicts
 - [x] Apply early stopping based on val macro F1
 - [x] Save the best checkpoint
 - [x] Evaluate on the held-out test set — record accuracy, macro F1, weighted F1, and per-class F1
-- [ ] Compare results against the Phase 2 baseline in the comparison table
+- [x] Compare results against the Phase 2 baseline in the comparison table
 
 **Exit Criteria:** A saved model checkpoint exists. Test set macro F1 beats the TF-IDF baseline. Per-class F1 has been reviewed and no class sits at zero.
 
