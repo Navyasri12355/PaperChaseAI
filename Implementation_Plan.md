@@ -90,8 +90,8 @@ Build a classifier that takes a research paper's title and abstract and predicts
 **Goal:** Extend the system to predict both category and subcategory in a coherent way.
 
 **Milestones:**
-- [ ] Map out the full category → subcategory hierarchy and confirm which subcategories belong to which parent
-- [ ] Choose a hierarchical strategy and document the tradeoff:
+- [x] Map out the full category → subcategory hierarchy and confirm which subcategories belong to which parent
+- [x] Choose a hierarchical strategy and document the tradeoff:
   - **Sequential:** two separate models; at inference run category first, then subcategory
   - **Constrained:** same as sequential but mask out invalid subcategories based on the predicted parent
   - **Multi-output:** one model with two output heads sharing a backbone
