@@ -1,0 +1,4 @@
+model,task,split,accuracy,macro_f1,weighted_f1,train_time_s
+SciBERT-Hierarchical,main_category,test,0.8408,0.7726,0.8456,—
+SciBERT-Hierarchical,sub_category_unconstrained,test,0.4997,0.4555,0.4877,—
+SciBERT-Hierarchical,sub_category_constrained,test,0.4929,0.4448,0.4768,—

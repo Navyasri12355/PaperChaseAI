@@ -1,0 +1,182 @@
+======================================================================
+PHASE 4 — HIERARCHICAL CLASSIFICATION REPORT
+======================================================================
+
+Strategy: CONSTRAINED SEQUENTIAL
+  1. Predict main_category with the Phase-3 SciBERT checkpoint.
+  2. Predict sub_category with a separately fine-tuned SciBERT.
+  3. At inference, zero-out logits for sub-categories that do NOT
+     belong to the predicted parent category, then take argmax.
+
+Tradeoff notes:
+  + Simple to train (two independent models, same architecture)
+  + Guarantees hierarchical consistency ≈ 1.0
+  + Easy to swap either model without retraining the other
+  - Category error propagates to sub-category (error chaining)
+  - Two full forward passes at inference
+
+======================================================================
+CATEGORY MODEL (Phase-3 checkpoint, unchanged)
+======================================================================
+  Accuracy:    0.8408
+  Macro F1:    0.7726
+  Weighted F1: 0.8456
+
+======================================================================
+SUB-CATEGORY MODEL — UNCONSTRAINED
+======================================================================
+  Accuracy:    0.4997
+  Macro F1:    0.4555
+  Weighted F1: 0.4877
+  Joint accuracy (cat AND sub correct):  0.4651
+  Hierarchical consistency:              0.8828
+
+======================================================================
+SUB-CATEGORY MODEL — CONSTRAINED (parent-masked logits)
+======================================================================
+  Accuracy:    0.4929
+  Macro F1:    0.4448
+  Weighted F1: 0.4768
+  Joint accuracy (cat AND sub correct):  0.4929
+  Hierarchical consistency:              1.0000
+  (should be ≈ 1.0; any deviation means sub has no valid subs)
+
+======================================================================
+PER-CATEGORY BREAKDOWN — Joint Accuracy (constrained)
+======================================================================
+              category  n_test  cat_correct  joint_correct  cat_acc  joint_acc
+  Quantitative Biology     105           97             72   0.9238     0.6857
+Electrical Engineering      68           44             44   0.6471     0.6471
+             Economics      52           40             31   0.7692     0.5962
+               Physics     548          488            299   0.8905     0.5456
+  Quantitative Finance      96           82             45   0.8542     0.4688
+      Computer Science     530          425            244   0.8019     0.4604
+            Statistics      77           61             32   0.7922     0.4156
+           Mathematics     427          363            171   0.8501     0.4005
+
+======================================================================
+SUB-CATEGORY CLASSIFICATION REPORT (constrained, test set)
+======================================================================
+                           precision    recall  f1-score   support
+
+                       AC       0.31      0.50      0.38        10
+                       AG       0.56      0.40      0.47        25
+                       AI       0.00      0.00      0.00         3
+                       AO       0.30      0.21      0.25        14
+                       AR       0.35      0.60      0.44        15
+                       AS       0.57      0.89      0.69        19
+                       AT       0.50      0.38      0.43         8
+                       BM       0.42      0.82      0.56        17
+                       CA       0.10      0.05      0.07        20
+                       CC       0.38      0.45      0.42        11
+                       CD       0.35      0.37      0.36        19
+                       CE       0.25      0.06      0.10        16
+                       CL       0.40      0.60      0.48        10
+                       CP       0.50      0.12      0.19        17
+                       CR       0.50      0.50      0.50        18
+                       CT       0.50      0.56      0.53         9
+                       CY       0.60      0.20      0.30        15
+      ComputerScience::CG       0.65      0.68      0.67        19
+      ComputerScience::CV       0.50      0.46      0.48        13
+      ComputerScience::GR       0.65      0.58      0.61        19
+      ComputerScience::GT       0.31      0.36      0.33        14
+      ComputerScience::LO       0.40      0.30      0.34        20
+      ComputerScience::SI       0.62      0.31      0.42        16
+                       DB       0.69      0.80      0.74        25
+                       DC       0.33      0.25      0.29         8
+                       DG       0.80      0.55      0.65        29
+                       DM       0.42      0.38      0.40        13
+                       DS       0.47      0.60      0.53        15
+                       EM       0.27      0.40      0.32        10
+                       EP       0.77      0.85      0.81        20
+                       ET       0.00      0.00      0.00        14
+            Economics::GN       0.54      0.61      0.57        23
+ElectricalEngineering::SP       0.39      0.53      0.45        17
+                       FA       0.55      0.33      0.41        18
+                       FL       0.67      0.48      0.56        25
+                       GA       0.63      0.75      0.69        16
+                       GM       0.00      0.00      0.00        22
+                  General       0.73      0.54      0.62        67
+                       HC       0.50      0.64      0.56        11
+                       HE       0.83      0.68      0.75        22
+                       HO       0.91      0.56      0.69        18
+                       IM       0.36      0.56      0.43         9
+                       IR       0.57      0.80      0.67        10
+                       IT       0.40      0.27      0.32        15
+                       IV       0.57      0.29      0.38        14
+                       KT       0.33      0.29      0.31        17
+                       LG       0.38      0.16      0.22        19
+                       MA       0.33      0.41      0.37        17
+                       ME       0.29      0.53      0.38        17
+                       MF       0.47      0.70      0.56        10
+                       ML       0.11      0.25      0.15         4
+                       MM       0.57      0.47      0.52        17
+                       MN       0.41      0.63      0.50        19
+                       MS       0.68      0.68      0.68        19
+          Mathematics::AP       0.38      0.36      0.37        14
+          Mathematics::CO       0.31      0.44      0.36         9
+          Mathematics::CV       0.21      0.50      0.30         8
+          Mathematics::GN       0.47      0.69      0.56        13
+          Mathematics::GR       0.20      0.20      0.20        10
+          Mathematics::GT       0.45      0.59      0.51        17
+          Mathematics::LO       0.80      0.62      0.70        13
+          Mathematics::PR       0.00      0.00      0.00        10
+          Mathematics::SP       0.46      0.85      0.59        13
+          Mathematics::ST       0.00      0.00      0.00        12
+                       NA       0.76      0.57      0.65        23
+                       NC       0.64      0.86      0.73        21
+                       NE       0.40      0.50      0.44        12
+                       NI       0.50      0.53      0.52        15
+                       NT       0.36      0.50      0.42        16
+                       OA       0.57      0.62      0.59        13
+                       OC       0.20      0.10      0.13        10
+                       OS       0.58      0.61      0.59        18
+                       OT       0.20      0.18      0.19        17
+                       PE       0.38      0.71      0.50        14
+                       PF       0.12      0.06      0.08        16
+                       PL       0.64      0.58      0.61        24
+                       PM       0.62      0.67      0.65        15
+              Physics::CG       0.92      0.44      0.60        27
+              Physics::CO       0.65      0.62      0.63        21
+              Physics::SI       0.52      0.75      0.61        20
+                       QA       0.30      0.35      0.33        20
+                       QM       0.07      0.07      0.07        15
+  QuantitativeBiology::GN       0.71      0.89      0.79        19
+  QuantitativeFinance::PR       0.54      0.44      0.48        16
+  QuantitativeFinance::ST       0.36      0.50      0.42        16
+                       RA       0.46      0.46      0.46        13
+                       RM       0.50      0.50      0.50        22
+                       RO       0.48      0.63      0.55        19
+                       RT       0.25      0.15      0.19        13
+                       SD       0.50      0.09      0.15        11
+                       SE       0.64      0.78      0.70        18
+                       SG       0.48      0.50      0.49        24
+                       SY       0.67      0.78      0.72        18
+           Statistics::AP       0.29      0.41      0.34        22
+           Statistics::CO       0.56      0.59      0.57        17
+                       TH       0.46      0.68      0.55        19
+                   acc-ph       0.56      0.82      0.67        11
+                    ao-ph       0.70      0.64      0.67        11
+                  atom-ph       0.31      1.00      0.48         5
+                   bio-ph       0.00      0.00      0.00         9
+                  chem-ph       0.81      0.48      0.60        27
+                  comp-ph       0.17      0.25      0.20         8
+                  data-an       0.40      0.12      0.18        17
+                   dis-nn       0.19      0.20      0.19        15
+                  flu-dyn       0.65      0.74      0.69        23
+                  ins-det       0.60      0.71      0.65        17
+                 mes-hall       0.42      0.44      0.43        18
+                 mtrl-sci       0.59      0.59      0.59        22
+                   optics       0.39      0.75      0.51        12
+                    other       0.00      0.00      0.00        13
+                 plasm-ph       0.83      0.75      0.79        20
+                quant-gas       0.59      0.68      0.63        25
+                   soc-ph       0.50      0.22      0.31         9
+                     soft       0.28      0.45      0.34        11
+                 space-ph       0.78      0.78      0.78        18
+                stat-mech       0.40      0.40      0.40        10
+                   str-el       0.47      0.58      0.52        12
+
+                 accuracy                           0.49      1903
+                macro avg       0.45      0.47      0.44      1903
+             weighted avg       0.49      0.49      0.48      1903
