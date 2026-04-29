@@ -1,0 +1,51 @@
+# ============================================================
+# Model weights — excluded because they exceed GitHub's 100 MB
+# per-file limit (each file is ~440 MB). These are the trained
+# SciBERT checkpoint weights in HuggingFace safetensors format.
+# To reproduce, fine-tune SciBERT using the configs and data.
+# ============================================================
+*.safetensors
+*.pt
+*.bin
+
+# ============================================================
+# Dataset CSV splits — excluded because they are derived from
+# the publicly available ArXiv dataset (Kaggle / Cornell).
+# All evaluation results from these files are already captured
+# in phase4_report.txt, phase4_results.csv, and
+# baseline_results.csv which ARE tracked.
+# - train.csv  : ~38 MB — full training split
+# - val.csv    : ~4.7 MB — validation split (used for checkpoint selection)
+# - test.csv   : ~4.7 MB — held-out test split (used for final eval)
+# ============================================================
+train.csv
+val.csv
+test.csv
+
+# ============================================================
+# Python cache and environment
+# ============================================================
+__pycache__/
+*.py[cod]
+*.pyo
+.env
+venv/
+env/
+.venv/
+
+# ============================================================
+# Jupyter notebook checkpoints
+# ============================================================
+.ipynb_checkpoints/
+
+# ============================================================
+# OS-generated files
+# ============================================================
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ============================================================
+# Large pickle model dumps (keep small label encoder pickles)
+# ============================================================
+*.pkl.bak
