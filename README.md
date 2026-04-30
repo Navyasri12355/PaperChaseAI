@@ -7,6 +7,7 @@ A two-stage **SciBERT-based hierarchical classification system** that categorise
 ## Table of Contents
 
 - [Project Overview](#project-overview)
+- [Web Application](#web-application)
 - [Architecture & Methodology](#architecture--methodology)
 - [Directory Structure](#directory-structure)
 - [File Descriptions](#file-descriptions)
@@ -14,6 +15,7 @@ A two-stage **SciBERT-based hierarchical classification system** that categorise
   - [Excluded Files (not in this repository)](#excluded-files-not-in-this-repository)
 - [Model Performance](#model-performance)
 - [Hierarchy Map](#hierarchy-map)
+- [How to Run the Application](#how-to-run-the-application)
 - [How to Reproduce](#how-to-reproduce)
 - [Dependencies](#dependencies)
 
@@ -27,6 +29,65 @@ This project tackles **multi-class hierarchical text classification** on the ArX
 2. **Sub-Category** — one of 117 fine-grained sub-fields (e.g., `Computer Science → Machine Learning`)
 
 The pipeline uses **SciBERT** (`allenai/scibert_scivocab_uncased`), a BERT-based model pre-trained on scientific text, fine-tuned separately for each level of the hierarchy.
+
+---
+
+## Web Application
+
+This project includes a **full-stack web application** that provides an interactive interface for classifying ArXiv papers in real-time.
+
+### Tech Stack
+
+- **Backend:** FastAPI (Python) — RESTful API serving the fine-tuned SciBERT models
+- **Frontend:** React + TypeScript + Vite — Modern, responsive UI with Tailwind CSS
+- **ML Inference:** PyTorch + Transformers — Real-time hierarchical classification with constraint masking
+
+### Features
+
+✅ **Real-time Classification** — Submit paper title and abstract, get instant predictions  
+✅ **Hierarchical Constraint Enforcement** — Guarantees valid parent-child category pairs  
+✅ **Confidence Scores** — Visual progress bars showing model confidence for both levels  
+✅ **Inference Time Tracking** — Displays prediction latency in milliseconds  
+✅ **Input Validation** — Client and server-side validation with helpful error messages  
+✅ **Responsive Design** — Clean, modern UI with college branding
+
+### API Endpoints
+
+| Endpoint | Method | Description |
+|---|---|---|
+| `/health` | GET | Health check — returns model loading status |
+| `/categories` | GET | Returns the complete hierarchy map (8 main → 117 sub) |
+| `/predict` | POST | Classifies a paper given `title` and `abstract` |
+
+### Application Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                     Frontend (React)                        │
+│  • Paper submission form with validation                    │
+│  • Results display with confidence visualization            │
+│  • Responsive UI with Tailwind CSS                          │
+└─────────────────────────────────────────────────────────────┘
+                            │
+                            │ HTTP POST /predict
+                            ▼
+┌─────────────────────────────────────────────────────────────┐
+│                   Backend (FastAPI)                         │
+│  • Request validation (Pydantic schemas)                    │
+│  • Model service singleton                                  │
+│  • CORS middleware for local development                   │
+└─────────────────────────────────────────────────────────────┘
+                            │
+                            ▼
+┌─────────────────────────────────────────────────────────────┐
+│                  Model Service Layer                        │
+│  1. Load both SciBERT models on startup                     │
+│  2. Tokenize input (title + [SEP] + abstract)              │
+│  3. Predict main category                                   │
+│  4. Predict sub-category with constraint masking           │
+│  5. Return predictions + confidence + timing                │
+└─────────────────────────────────────────────────────────────┘
+```
 
 ---
 
@@ -85,6 +146,35 @@ Input Paper (Title + Abstract)
 ```
 Lab EL/
 │
+├── backend/                        # FastAPI backend application
+│   ├── app/
+│   │   ├── main.py                 # FastAPI app with CORS and lifespan
+│   │   ├── model_service.py        # Model loading and inference logic
+│   │   ├── schemas.py              # Pydantic request/response models
+│   │   └── routers/
+│   │       ├── predict.py          # POST /predict endpoint
+│   │       ├── health.py           # GET /health endpoint
+│   │       └── categories.py       # GET /categories endpoint
+│   ├── requirements.txt            # Python dependencies
+│   └── .env                        # Environment configuration
+│
+├── frontend/                       # React + TypeScript frontend
+│   ├── src/
+│   │   ├── App.tsx                 # Main app component with layout
+│   │   ├── main.tsx                # Vite entry point
+│   │   ├── index.css               # Tailwind CSS imports
+│   │   ├── api/
+│   │   │   └── client.ts           # Axios API client
+│   │   └── components/
+│   │       ├── PaperForm.tsx       # Input form with validation
+│   │       └── ResultsPanel.tsx    # Results display component
+│   ├── public/
+│   │   └── Emblem.png              # College emblem
+│   ├── package.json                # Node dependencies
+│   ├── vite.config.ts              # Vite config with proxy
+│   ├── tailwind.config.js          # Tailwind CSS config
+│   └── tsconfig.json               # TypeScript config
+│
 ├── Main Category/                  # Fine-tuned SciBERT for main category
 │   ├── config.json                 ✅ tracked
 │   ├── tokenizer.json              ✅ tracked
@@ -108,6 +198,7 @@ Lab EL/
 ├── phase4_report.txt               ✅ tracked
 ├── phase4_results.csv              ✅ tracked
 ├── phase5_error_analysis.ipynb     ✅ tracked
+├── implementation.md               ✅ tracked (full implementation plan)
 ├── train.csv                       ❌ NOT tracked (38 MB — see below)
 ├── test.csv                        ❌ NOT tracked (4.7 MB — see below)
 ├── val.csv                         ❌ NOT tracked (4.7 MB — see below)
@@ -251,6 +342,75 @@ The complete mapping is in [`phase4_hierarchy_map.json`](./phase4_hierarchy_map.
 
 ---
 
+## How to Run the Application
+
+### Prerequisites
+
+- Python 3.8+ with pip
+- Node.js 16+ with npm
+- The two model files (`model.safetensors`) must be placed in their respective directories:
+  - `Main Category/model.safetensors`
+  - `Sub Category/best_model/model.safetensors`
+
+### Backend Setup
+
+```bash
+# Navigate to backend directory
+cd backend
+
+# Install Python dependencies
+pip install -r requirements.txt
+
+# Start the FastAPI server
+uvicorn app.main:app --reload --port 8000
+```
+
+The backend will:
+- Load both SciBERT models on startup (may take 10-30 seconds)
+- Start serving on `http://localhost:8000`
+- Enable CORS for frontend at `http://localhost:5173`
+
+### Frontend Setup
+
+```bash
+# Navigate to frontend directory (in a new terminal)
+cd frontend
+
+# Install Node dependencies
+npm install
+
+# Start the Vite development server
+npm run dev
+```
+
+The frontend will:
+- Start on `http://localhost:5173`
+- Proxy API requests to the backend via `/api` prefix
+- Hot-reload on file changes
+
+### Using the Application
+
+1. Open `http://localhost:5173` in your browser
+2. Enter a paper **title** (3-300 characters)
+3. Enter a paper **abstract** (50-3000 characters)
+4. Click **"Classify Paper"**
+5. View the predicted main category, sub-category, and confidence scores
+6. Click **"Classify another paper"** to reset
+
+### Example Input
+
+**Title:**  
+`Attention Is All You Need`
+
+**Abstract:**  
+`The dominant sequence transduction models are based on complex recurrent or convolutional neural networks that include an encoder and a decoder. The best performing models also connect the encoder and decoder through an attention mechanism. We propose a new simple network architecture, the Transformer, based solely on attention mechanisms, dispensing with recurrence and convolutions entirely.`
+
+**Expected Output:**  
+- Main Category: `Computer Science` (high confidence)
+- Sub-Category: `LG` (Machine Learning) or `CL` (Computation and Language)
+
+---
+
 ## How to Reproduce
 
 ### 1. Prepare the dataset
@@ -308,6 +468,59 @@ Open and run `phase5_error_analysis.ipynb` to inspect misclassifications on the 
 
 ## Dependencies
 
+### Backend (Python)
+
+```
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+transformers>=4.30.0
+torch>=2.0.0
+scikit-learn>=1.2.0
+joblib>=1.3.0
+python-dotenv>=1.0.0
+pydantic>=2.0.0
+numpy>=1.24.0
+safetensors>=0.3.0
+```
+
+Install via:
+```bash
+cd backend
+pip install -r requirements.txt
+```
+
+### Frontend (Node.js)
+
+```json
+{
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "axios": "^1.6.0",
+    "@tanstack/react-query": "^5.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "@vitejs/plugin-react": "^4.2.0",
+    "vite": "^5.0.0",
+    "typescript": "^5.3.0",
+    "tailwindcss": "^3.3.0",
+    "@tailwindcss/forms": "^0.5.0",
+    "postcss": "^8.4.0",
+    "autoprefixer": "^10.4.0"
+  }
+}
+```
+
+Install via:
+```bash
+cd frontend
+npm install
+```
+
+### Model Training (for reproduction)
+
 ```
 transformers>=4.30.0
 torch>=2.0.0
@@ -327,3 +540,7 @@ pip install transformers torch scikit-learn pandas numpy matplotlib jupyter safe
 ---
 
 *This project was developed as part of the Natural Language Processing Lab — VIth Semester, RVCE.*
+
+**Developed by:** Navyasri Mahitha Pulipati, Shreya Mohan, and Shravyaa S  
+**Department:** Artificial Intelligence and Machine Learning  
+**Institution:** RV College of Engineering
