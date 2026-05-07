@@ -46,10 +46,22 @@ This project includes a **full-stack web application** that provides an interact
 
 ✅ **Real-time Classification** — Submit paper title and abstract, get instant predictions  
 ✅ **Hierarchical Constraint Enforcement** — Guarantees valid parent-child category pairs  
+✅ **HuggingFace Hub Integration** — Models automatically downloaded and cached  
 ✅ **Confidence Scores** — Visual progress bars showing model confidence for both levels  
 ✅ **Inference Time Tracking** — Displays prediction latency in milliseconds  
 ✅ **Input Validation** — Client and server-side validation with helpful error messages  
 ✅ **Responsive Design** — Clean, modern UI with college branding
+
+### Deployed Models
+
+The application uses two fine-tuned SciBERT models hosted on HuggingFace Hub:
+
+| Model | HuggingFace Hub | Purpose | Classes |
+|---|---|---|---|
+| Main Category Classifier | [`ShravyaaS/arxiv-main-category-classifier`](https://huggingface.co/ShravyaaS/arxiv-main-category-classifier) | Predicts broad research field | 8 categories |
+| Sub-Category Classifier | [`ShravyaaS/arxiv-sub-category-classifier`](https://huggingface.co/ShravyaaS/arxiv-sub-category-classifier) | Predicts specific sub-field | 117 categories |
+
+Both models are based on `allenai/scibert_scivocab_uncased` and are automatically downloaded on first run.
 
 ### API Endpoints
 
@@ -348,9 +360,9 @@ The complete mapping is in [`phase4_hierarchy_map.json`](./phase4_hierarchy_map.
 
 - Python 3.8+ with pip
 - Node.js 16+ with npm
-- The two model files (`model.safetensors`) must be placed in their respective directories:
-  - `Main Category/model.safetensors`
-  - `Sub Category/best_model/model.safetensors`
+- Internet connection (for downloading models from HuggingFace Hub on first run)
+
+**Note:** The models are now automatically downloaded from HuggingFace Hub. You no longer need to manually place `model.safetensors` files in local directories.
 
 ### Backend Setup
 
@@ -366,9 +378,15 @@ uvicorn app.main:app --reload --port 8000
 ```
 
 The backend will:
-- Load both SciBERT models on startup (may take 10-30 seconds)
+- Automatically download models from HuggingFace Hub on first run (~880 MB total)
+  - Main category model: `ShravyaaS/arxiv-main-category-classifier`
+  - Sub-category model: `ShravyaaS/arxiv-sub-category-classifier`
+- Cache models locally for faster subsequent startups
+- Load label encoders and hierarchy map from local files
 - Start serving on `http://localhost:8000`
 - Enable CORS for frontend at `http://localhost:5173`
+
+**First run may take 2-5 minutes to download models. Subsequent runs will be much faster.**
 
 ### Frontend Setup
 
@@ -427,18 +445,34 @@ model = AutoModelForSequenceClassification.from_pretrained(
     "allenai/scibert_scivocab_uncased", num_labels=8
 )
 # Fine-tune on train.csv, evaluate on val.csv
-# Save to Main Category/
+# Push to HuggingFace Hub:
+model.push_to_hub("your-username/arxiv-main-category-classifier")
+tokenizer.push_to_hub("your-username/arxiv-main-category-classifier")
 ```
 
 ### 3. Fine-tune the Sub-Category model
 
-Same as above but with `num_labels=117`. Save the best checkpoint to `Sub Category/best_model/`.
+Same as above but with `num_labels=117`. Push to HuggingFace Hub:
+
+```python
+model.push_to_hub("your-username/arxiv-sub-category-classifier")
+tokenizer.push_to_hub("your-username/arxiv-sub-category-classifier")
+```
 
 ### 4. Run constrained inference
 
 ```python
 import json, torch
 import numpy as np
+from transformers import AutoTokenizer, AutoModelForSequenceClassification
+
+# Load models from HuggingFace Hub
+main_model = AutoModelForSequenceClassification.from_pretrained(
+    "ShravyaaS/arxiv-main-category-classifier"
+)
+sub_model = AutoModelForSequenceClassification.from_pretrained(
+    "ShravyaaS/arxiv-sub-category-classifier"
+)
 
 hierarchy = json.load(open("phase4_hierarchy_map.json"))
 label_encoder_main = ...   # load le_main_category.pkl

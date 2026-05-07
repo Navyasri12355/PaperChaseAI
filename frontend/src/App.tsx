@@ -34,7 +34,7 @@ export default function App() {
             {/* Right: College info */}
             <div className="flex-shrink-0 text-right text-sm">
               <div className="font-semibold text-gray-900">RV College of Engineering</div>
-              <div className="text-gray-600">Department of XYZ</div>
+              <div className="text-gray-600">Department of AIML</div>
             </div>
           </div>
         </div>
@@ -64,7 +64,7 @@ export default function App() {
         {/* Footer */}
         <div className="bg-gray-50 py-4">
           <p className="text-xs text-gray-400 text-center">
-            Developed by Name1, Name2 and Name3
+            Developed by Navyasri Mahitha Pulipati, Shreya Mohan and Shravyaa S
           </p>
         </div>
       </div>
