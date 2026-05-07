@@ -168,6 +168,8 @@ Lab EL/
 │   │       ├── health.py           # GET /health endpoint
 │   │       └── categories.py       # GET /categories endpoint
 │   ├── requirements.txt            # Python dependencies
+│   ├── Dockerfile                  # Docker image for backend
+│   ├── .dockerignore               # Docker ignore patterns
 │   └── .env                        # Environment configuration
 │
 ├── frontend/                       # React + TypeScript frontend
@@ -185,7 +187,13 @@ Lab EL/
 │   ├── package.json                # Node dependencies
 │   ├── vite.config.ts              # Vite config with proxy
 │   ├── tailwind.config.js          # Tailwind CSS config
-│   └── tsconfig.json               # TypeScript config
+│   ├── tsconfig.json               # TypeScript config
+│   ├── Dockerfile                  # Multi-stage Docker image
+│   ├── nginx.conf                  # Nginx configuration for production
+│   ├── .dockerignore               # Docker ignore patterns
+│   └── .env.example                # Environment variables template
+│
+├── docker-compose.yml              # Docker Compose orchestration
 │
 ├── Main Category/                  # Fine-tuned SciBERT for main category
 │   ├── config.json                 ✅ tracked
@@ -356,6 +364,43 @@ The complete mapping is in [`phase4_hierarchy_map.json`](./phase4_hierarchy_map.
 
 ## How to Run the Application
 
+### Option 1: Using Docker (Recommended)
+
+The easiest way to run the application is using Docker Compose, which handles all dependencies automatically.
+
+**Prerequisites:**
+- Docker and Docker Compose installed
+- Internet connection (for downloading models on first run)
+
+**Steps:**
+
+```bash
+# Clone the repository
+git clone https://github.com/Navyasri12355/PaperChaseAI.git
+cd PaperChaseAI
+
+# Build and start both services
+docker-compose up --build
+
+# Or run in detached mode
+docker-compose up -d --build
+```
+
+The application will be available at:
+- **Frontend:** `http://localhost` (port 80)
+- **Backend API:** `http://localhost:8000`
+
+**First run:** Models will download from HuggingFace Hub (~880 MB). This may take 2-5 minutes. Subsequent runs will be much faster as models are cached.
+
+**To stop:**
+```bash
+docker-compose down
+```
+
+---
+
+### Option 2: Manual Setup (Development)
+
 ### Prerequisites
 
 - Python 3.8+ with pip
@@ -405,6 +450,8 @@ The frontend will:
 - Start on `http://localhost:5173`
 - Proxy API requests to the backend via `/api` prefix
 - Hot-reload on file changes
+
+---
 
 ### Using the Application
 
