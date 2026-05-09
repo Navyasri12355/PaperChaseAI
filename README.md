@@ -87,16 +87,16 @@ Both models are based on `allenai/scibert_scivocab_uncased` and are automaticall
 │                   Backend (FastAPI)                         │
 │  • Request validation (Pydantic schemas)                    │
 │  • Model service singleton                                  │
-│  • CORS middleware for local development                   │
+│  • CORS middleware for local development                    │
 └─────────────────────────────────────────────────────────────┘
                             │
                             ▼
 ┌─────────────────────────────────────────────────────────────┐
 │                  Model Service Layer                        │
 │  1. Load both SciBERT models on startup                     │
-│  2. Tokenize input (title + [SEP] + abstract)              │
+│  2. Tokenize input (title + [SEP] + abstract)               │
 │  3. Predict main category                                   │
-│  4. Predict sub-category with constraint masking           │
+│  4. Predict sub-category with constraint masking            │
 │  5. Return predictions + confidence + timing                │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -617,11 +617,3 @@ Install via:
 ```bash
 pip install transformers torch scikit-learn pandas numpy matplotlib jupyter safetensors
 ```
-
----
-
-*This project was developed as part of the Natural Language Processing Lab — VIth Semester, RVCE.*
-
-**Developed by:** Navyasri Mahitha Pulipati, Shreya Mohan, and Shravyaa S  
-**Department:** Artificial Intelligence and Machine Learning  
-**Institution:** RV College of Engineering
