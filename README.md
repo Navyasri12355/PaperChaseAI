@@ -1,4 +1,4 @@
-# ArXiv Paper Hierarchical Classification — NLP Lab EL
+# ArXiv Paper Hierarchical Classification
 
 A two-stage **SciBERT-based hierarchical classification system** that categorises ArXiv research papers into 8 main categories and 117 sub-categories using a *Constrained Sequential* strategy.
 
