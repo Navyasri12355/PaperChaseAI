@@ -1,0 +1,16 @@
+true_parent,true_sub,pred_sub,count
+Physics,General,Physics::CO,7
+Quantitative Finance,CP,QuantitativeFinance::ST,6
+Statistics,OT,ME,6
+Mathematics,GM,NT,5
+Quantitative Biology,MN,BM,5
+Statistics,OT,Statistics::AP,5
+Mathematics,CA,Mathematics::CV,5
+Quantitative Biology,QM,PE,5
+Physics,General,quant-gas,4
+Mathematics,DG,SG,4
+Quantitative Biology,QM,MN,4
+Physics,HE,GA,4
+Physics,data-an,General,4
+Statistics,Statistics::CO,ME,4
+Mathematics,KT,QA,4

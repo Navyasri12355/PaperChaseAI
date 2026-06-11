@@ -1,0 +1,8 @@
+true_parent,same_parent_errors,n_test,correct,error_rate (%),sub_acc (%)
+Mathematics,190,427,173,44.5,40.5
+Physics,190,548,297,34.7,54.2
+Computer Science,178,530,244,33.6,46.0
+Quantitative Finance,38,96,43,39.6,44.8
+Statistics,30,77,31,39.0,40.3
+Quantitative Biology,25,105,72,23.8,68.6
+Economics,9,52,31,17.3,59.6

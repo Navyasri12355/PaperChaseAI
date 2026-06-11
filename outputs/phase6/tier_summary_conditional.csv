@@ -1,0 +1,4 @@
+Tier,Constrained (n),Constrained (%),Unconstrained (n),Unconstrained (%)
+Correct,935,58.62,878,55.05
+Same-parent error,660,41.38,621,38.93
+Cross-parent error,0,0.0,96,6.02

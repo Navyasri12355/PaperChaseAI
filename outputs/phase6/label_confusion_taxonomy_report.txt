@@ -1,0 +1,106 @@
+======================================================================
+PHASE 6 — LABEL CONFUSION TAXONOMY REPORT
+======================================================================
+
+STRATEGY: CONSTRAINED SEQUENTIAL (parent-masked logits)
+  The sub-category model logits are zeroed for any sub-category that
+  does NOT belong to the parent category predicted in step 1.
+  This forces every prediction to be taxonomically consistent.
+
+CLAIM UNDER TEST:
+  The masking constraint should reduce cross-parent (Tier-2) errors
+  to zero, leaving only same-parent (Tier-1) errors.
+
+======================================================================
+TIER DEFINITIONS
+======================================================================
+  Tier 0 — Correct:           true_sub == pred_sub
+  Tier 1 — Same-parent error: true and pred share the same parent category
+  Tier 2 — Cross-parent error: true and pred belong to DIFFERENT parents
+
+======================================================================
+TIER DISTRIBUTION
+======================================================================
+              Tier  Constrained (n)  Constrained (%)  Unconstrained (n)  Unconstrained (%)
+           Correct              935            49.13                944              49.61
+ Same-parent error              660            34.68                650              34.16
+Cross-parent error              308            16.18                309              16.24
+
+  Cross-parent errors (unconstrained): 309
+  Cross-parent errors (constrained):   308   ← target = 0
+  Reduction: 0.3%
+
+======================================================================
+CONDITIONAL TIER DISTRIBUTION (given cat model correct)
+======================================================================
+              Tier  Constrained (n)  Constrained (%)  Unconstrained (n)  Unconstrained (%)
+           Correct              935            58.62                878              55.05
+ Same-parent error              660            41.38                621              38.93
+Cross-parent error                0             0.00                 96               6.02
+
+  Constrained cross-parent (given cat correct): 0  ← ZERO by design
+  Unconstrained cross-parent (given cat correct): 96
+
+======================================================================
+KEY FINDING
+======================================================================
+  WHY OVERALL CROSS-PARENT COUNTS ARE SIMILAR:
+  Constrained cross-parent errors (308) ≈ category model errors (308).
+  When the category model predicts the wrong parent, the mask forces the sub
+  prediction into that wrong parent — propagating the error rather than fixing it.
+  Unconstrained cross-parent errors come from the sub-model making independent
+  cross-parent mistakes (309 total), which happen to be similar in scale.
+
+  THE CORRECT COMPARISON — CONDITIONAL ON CATEGORY CORRECT:
+  Among the 1,595 samples where the category model is correct, the constraint
+  reduces cross-parent sub-errors from 96 (unconstrained) to 0 (constrained).
+  This is the definitive NLP argument: when the taxonomy root is identified correctly,
+  the constraint GUARANTEES all sub-category predictions stay within that branch.
+
+  Practical implication: A model confusing "LG" (Machine Learning) with
+  "CL" (Computation and Language) — both under Computer Science — is a
+  qualitatively less severe error than confusing them with "flu-dyn"
+  (Fluid Dynamics) under Physics. The constraint enforces the latter
+  guarantee for every sample where it correctly identifies the parent.
+
+======================================================================
+PER-PARENT SAME-PARENT ERROR RATE
+======================================================================
+         true_parent  same_parent_errors  n_test  correct  error_rate (%)  sub_acc (%)
+         Mathematics                 190     427      173            44.5         40.5
+             Physics                 190     548      297            34.7         54.2
+    Computer Science                 178     530      244            33.6         46.0
+Quantitative Finance                  38      96       43            39.6         44.8
+          Statistics                  30      77       31            39.0         40.3
+Quantitative Biology                  25     105       72            23.8         68.6
+           Economics                   9      52       31            17.3         59.6
+
+======================================================================
+TOP 15 SAME-PARENT CONFUSED PAIRS (constrained)
+======================================================================
+         true_parent       true_sub                pred_sub  count
+             Physics        General             Physics::CO      7
+Quantitative Finance             CP QuantitativeFinance::ST      6
+          Statistics             OT                      ME      6
+         Mathematics             GM                      NT      5
+Quantitative Biology             MN                      BM      5
+          Statistics             OT          Statistics::AP      5
+         Mathematics             CA         Mathematics::CV      5
+Quantitative Biology             QM                      PE      5
+             Physics        General               quant-gas      4
+         Mathematics             DG                      SG      4
+Quantitative Biology             QM                      MN      4
+             Physics             HE                      GA      4
+             Physics        data-an                 General      4
+          Statistics Statistics::CO                      ME      4
+         Mathematics             KT                      QA      4
+
+======================================================================
+OUTPUTS
+======================================================================
+  outputs/phase6/tier_summary.csv
+  outputs/phase6/same_parent_error_breakdown.csv
+  outputs/phase6/top_same_parent_pairs.csv
+  outputs/phase6/label_confusion_taxonomy_heatmap.png
+  outputs/phase6/label_confusion_taxonomy_bar.png
+  outputs/phase6/label_confusion_taxonomy_report.txt
