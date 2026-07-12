@@ -6,49 +6,54 @@ interface ResultsPanelProps {
 }
 
 export default function ResultsPanel({ result, onReset }: ResultsPanelProps) {
-  const mainConfPercent = Math.round(result.main_confidence * 100)
-  const subConfPercent = Math.round(result.sub_confidence * 100)
-
   return (
     <div className="space-y-6">
       <h2 className="text-2xl font-bold text-gray-900">Classification Results</h2>
 
-      <div className="grid grid-cols-2 gap-6">
-        {/* Main Category Card */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Main Categories Card */}
         <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
-          <h3 className="text-sm font-medium text-gray-600 mb-4">Main Category</h3>
-          <p className="text-2xl font-bold text-gray-900 mb-6">{result.main_category}</p>
-
-          <div className="space-y-2">
-            <div className="flex justify-between items-center mb-2">
-              <span className="text-sm text-gray-600">Confidence</span>
-              <span className="text-sm font-semibold text-gray-900">{mainConfPercent}%</span>
-            </div>
-            <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
-              <div
-                className="bg-blue-600 h-full rounded-full transition-all"
-                style={{ width: `${mainConfPercent}%` }}
-              ></div>
-            </div>
+          <h3 className="text-sm font-medium text-gray-600 mb-4">Main Categories</h3>
+          <div className="space-y-4">
+            {result.main_categories.map((cat, idx) => (
+              <div key={idx} className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <p className="font-semibold text-gray-900">{cat.category}</p>
+                  <span className="text-sm font-semibold text-gray-900">
+                    {Math.round(cat.confidence * 100)}%
+                  </span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+                  <div
+                    className="bg-blue-600 h-full rounded-full transition-all"
+                    style={{ width: `${Math.round(cat.confidence * 100)}%` }}
+                  ></div>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
 
-        {/* Sub Category Card */}
+        {/* Sub Categories Card */}
         <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
-          <h3 className="text-sm font-medium text-gray-600 mb-4">Sub-Category</h3>
-          <p className="text-2xl font-bold text-gray-900 mb-6">{result.sub_category}</p>
-
-          <div className="space-y-2">
-            <div className="flex justify-between items-center mb-2">
-              <span className="text-sm text-gray-600">Confidence</span>
-              <span className="text-sm font-semibold text-gray-900">{subConfPercent}%</span>
-            </div>
-            <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
-              <div
-                className="bg-indigo-600 h-full rounded-full transition-all"
-                style={{ width: `${subConfPercent}%` }}
-              ></div>
-            </div>
+          <h3 className="text-sm font-medium text-gray-600 mb-4">Sub-Categories</h3>
+          <div className="space-y-4">
+            {result.sub_categories.map((cat, idx) => (
+              <div key={idx} className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <p className="font-semibold text-gray-900">{cat.category}</p>
+                  <span className="text-sm font-semibold text-gray-900">
+                    {Math.round(cat.confidence * 100)}%
+                  </span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+                  <div
+                    className="bg-indigo-600 h-full rounded-full transition-all"
+                    style={{ width: `${Math.round(cat.confidence * 100)}%` }}
+                  ></div>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </div>

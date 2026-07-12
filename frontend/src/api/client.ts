@@ -10,11 +10,14 @@ export interface PredictRequest {
   abstract: string
 }
 
+export interface CategoryPrediction {
+  category: string
+  confidence: number
+}
+
 export interface PredictResponse {
-  main_category: string
-  sub_category: string
-  main_confidence: number
-  sub_confidence: number
+  main_categories: CategoryPrediction[]
+  sub_categories: CategoryPrediction[]
   inference_time_ms: number
 }
 

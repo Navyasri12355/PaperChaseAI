@@ -38,7 +38,7 @@ class ModelService:
 
         self.loaded = True
 
-    def predict(self, title: str, abstract: str) -> dict:
+    def predict(self, title: str, abstract: str, top_k: int = 3, min_confidence: float = 0.1) -> dict:
         start = time.time()
         text = f"{title} [SEP] {abstract}"
 
@@ -52,11 +52,21 @@ class ModelService:
             main_logits = self.main_model(**main_inputs).logits
 
         main_probs = torch.softmax(main_logits, dim=-1).squeeze()
-        main_idx = main_probs.argmax().item()
-        main_conf = main_probs[main_idx].item()
-        main_label = self.le_main.inverse_transform([main_idx])[0]
+        
+        # Get top k main categories
+        top_main_probs, top_main_indices = torch.topk(main_probs, min(top_k, len(main_probs)))
+        
+        main_categories = []
+        for prob, idx in zip(top_main_probs, top_main_indices):
+            conf = prob.item()
+            if conf >= min_confidence:
+                label = self.le_main.inverse_transform([idx.item()])[0]
+                main_categories.append({
+                    "category": label,
+                    "confidence": round(conf, 4)
+                })
 
-        # --- Sub category inference with constraint masking ---
+        # --- Sub category inference for each main category ---
         sub_inputs = self.sub_tokenizer(
             text, truncation=True, max_length=512,
             return_tensors="pt"
@@ -65,24 +75,43 @@ class ModelService:
         with torch.no_grad():
             sub_logits = self.sub_model(**sub_inputs).logits.squeeze()
 
-        # Mask out sub-categories not belonging to predicted main category
-        valid_subs = set(self.hierarchy.get(main_label, []))
-        for i, label in enumerate(self.le_sub.classes_):
-            if label not in valid_subs:
-                sub_logits[i] = -1e9
+        sub_categories = []
+        
+        # For each predicted main category, get top sub-categories
+        for main_cat in main_categories:
+            valid_subs = set(self.hierarchy.get(main_cat["category"], []))
+            
+            # Create a copy of logits for masking
+            masked_logits = sub_logits.clone()
+            for i, label in enumerate(self.le_sub.classes_):
+                if label not in valid_subs:
+                    masked_logits[i] = -1e9
+            
+            sub_probs = torch.softmax(masked_logits, dim=-1)
+            top_sub_probs, top_sub_indices = torch.topk(sub_probs, min(top_k, len(sub_probs)))
+            
+            for prob, idx in zip(top_sub_probs, top_sub_indices):
+                conf = prob.item()
+                if conf >= min_confidence:
+                    label = self.le_sub.inverse_transform([idx.item()])[0]
+                    sub_categories.append({
+                        "category": label,
+                        "confidence": round(conf, 4)
+                    })
 
-        sub_probs = torch.softmax(sub_logits, dim=-1)
-        sub_idx = sub_probs.argmax().item()
-        sub_conf = sub_probs[sub_idx].item()
-        sub_label = self.le_sub.inverse_transform([sub_idx])[0]
+        # Remove duplicate sub-categories and sort by confidence
+        seen = set()
+        unique_sub_categories = []
+        for cat in sorted(sub_categories, key=lambda x: x["confidence"], reverse=True):
+            if cat["category"] not in seen:
+                seen.add(cat["category"])
+                unique_sub_categories.append(cat)
 
         inference_time = (time.time() - start) * 1000
 
         return {
-            "main_category": main_label,
-            "sub_category": sub_label,
-            "main_confidence": round(main_conf, 4),
-            "sub_confidence": round(sub_conf, 4),
+            "main_categories": main_categories,
+            "sub_categories": unique_sub_categories[:top_k],
             "inference_time_ms": round(inference_time, 2)
         }
 
