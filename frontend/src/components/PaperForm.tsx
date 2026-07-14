@@ -9,10 +9,12 @@ interface PaperFormProps {
 export default function PaperForm({ onResult }: PaperFormProps) {
   const [title, setTitle] = useState("")
   const [abstract, setAbstract] = useState("")
+  const [topK, setTopK] = useState(3)
+  const [minConfidence, setMinConfidence] = useState(0.01)
   const [errors, setErrors] = useState<{ title?: string; abstract?: string }>({})
 
   const mutation = useMutation({
-    mutationFn: (data: { title: string; abstract: string }) => classifyPaper(data),
+    mutationFn: (data: { title: string; abstract: string; top_k?: number; min_confidence?: number }) => classifyPaper(data),
     onSuccess: (data) => {
       onResult(data)
     },
@@ -42,7 +44,7 @@ export default function PaperForm({ onResult }: PaperFormProps) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (validate()) {
-      mutation.mutate({ title, abstract })
+      mutation.mutate({ title, abstract, top_k: topK, min_confidence: minConfidence })
     }
   }
 
@@ -98,6 +100,38 @@ export default function PaperForm({ onResult }: PaperFormProps) {
           </span>
         </div>
         {errors.abstract && <p className="text-red-500 text-sm mt-1">{errors.abstract}</p>}
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label htmlFor="topK" className="block text-sm font-medium text-gray-900 mb-2">
+            Number of Categories (top_k)
+          </label>
+          <input
+            id="topK"
+            type="number"
+            min="1"
+            max="10"
+            value={topK}
+            onChange={(e) => setTopK(Math.max(1, Math.min(10, parseInt(e.target.value) || 3)))}
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+        <div>
+          <label htmlFor="minConfidence" className="block text-sm font-medium text-gray-900 mb-2">
+            Min Confidence (0-1)
+          </label>
+          <input
+            id="minConfidence"
+            type="number"
+            min="0"
+            max="1"
+            step="0.01"
+            value={minConfidence}
+            onChange={(e) => setMinConfidence(Math.max(0, Math.min(1, parseFloat(e.target.value) || 0.01)))}
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
       </div>
 
       <button

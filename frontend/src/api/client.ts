@@ -8,6 +8,8 @@ const api = axios.create({
 export interface PredictRequest {
   title: string
   abstract: string
+  top_k?: number
+  min_confidence?: number
 }
 
 export interface CategoryPrediction {

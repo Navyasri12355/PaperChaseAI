@@ -14,7 +14,8 @@ class ModelService:
              sub_model_path: str,
              le_main_path: str,
              le_sub_path: str,
-             hierarchy_path: str):
+             hierarchy_path: str,
+             category_names_path: str = None):
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -35,10 +36,16 @@ class ModelService:
         self.le_main = joblib.load(le_main_path)
         self.le_sub = joblib.load(le_sub_path)
         self.hierarchy = json.load(open(hierarchy_path))
+        
+        # Load category names mapping
+        if category_names_path:
+            self.category_names = json.load(open(category_names_path))
+        else:
+            self.category_names = {}
 
         self.loaded = True
 
-    def predict(self, title: str, abstract: str, top_k: int = 3, min_confidence: float = 0.1) -> dict:
+    def predict(self, title: str, abstract: str, top_k: int = 3, min_confidence: float = 0.01) -> dict:
         start = time.time()
         text = f"{title} [SEP] {abstract}"
 
@@ -61,8 +68,10 @@ class ModelService:
             conf = prob.item()
             if conf >= min_confidence:
                 label = self.le_main.inverse_transform([idx.item()])[0]
+                # Use full name if available, otherwise use the code
+                display_name = self.category_names.get(label, label)
                 main_categories.append({
-                    "category": label,
+                    "category": display_name,
                     "confidence": round(conf, 4)
                 })
 
@@ -94,8 +103,10 @@ class ModelService:
                 conf = prob.item()
                 if conf >= min_confidence:
                     label = self.le_sub.inverse_transform([idx.item()])[0]
+                    # Use full name if available, otherwise use the code
+                    display_name = self.category_names.get(label, label)
                     sub_categories.append({
-                        "category": label,
+                        "category": display_name,
                         "confidence": round(conf, 4)
                     })
 
